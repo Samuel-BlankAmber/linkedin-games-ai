@@ -6,6 +6,8 @@ This project uses Playwright to automate the solving of LinkedIn games. I do not
 
 ## Usage
 
+Add `OPENAI_API_KEY` to `src/.env`
+
 ```bash
 cd src
 npm install
@@ -22,6 +24,10 @@ The game can be expressed as a set of constraints, which Z3 Theorem Prover can b
 ### Queens
 
 The game can be expressed as a set of constraints, which Z3 Theorem Prover can be used to solve.
+
+### Pinpoint
+
+Solved using OpenAI API.
 
 ## TODO
 

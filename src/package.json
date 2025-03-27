@@ -19,6 +19,8 @@
     "vitest": "^3.0.9"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
+    "openai": "^4.90.0",
     "z3-solver": "^4.14.1"
   }
 }
