@@ -15,7 +15,7 @@ export async function getOpenAIResponse(prompt: string): Promise<string> {
 
   try {
     const response = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
     });
     const content = response.choices[0].message.content;
