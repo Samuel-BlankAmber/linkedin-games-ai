@@ -19,6 +19,10 @@ npm start
 
 The game can be expressed as a set of constraints, which Z3 Theorem Prover can be used to solve.
 
+### Queens
+
+The game can be expressed as a set of constraints, which Z3 Theorem Prover can be used to solve.
+
 ## TODO
 
 - The Tango solver assumes constraint divs use `lotka-cell-edge--right` which may not always be true
