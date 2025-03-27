@@ -39,7 +39,7 @@ test('Play Pinpoint', async ({ page }) => {
     Just provide the category name.
 
     ${clues.map((clue, index) => `Clue ${index + 1}: ${clue}`).join('\n')}
-    `
+    `;
     const category = await getOpenAIResponse(prompt);
 
     await guessCategoryInput.fill(category);
