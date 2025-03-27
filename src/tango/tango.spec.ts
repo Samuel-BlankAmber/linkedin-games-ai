@@ -115,6 +115,7 @@ test('Play Tango', async ({ page }) => {
   const gridConstraints = info.gridConstraints;
   await solveTango(grid, gridConstraints);
   await clickBasedOnGrid(frame, grid);
+
   await expect(page.locator('iframe[title="games"]').contentFrame().getByText('You’re crushing it!')).toBeVisible();
   const solvedText = await page.locator('iframe[title="games"]').contentFrame().getByText('Solved in 0:').textContent();
   if (solvedText) {
