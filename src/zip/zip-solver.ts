@@ -5,9 +5,14 @@ export interface Position {
   col: number;
 }
 
-export async function solveZip(grid: number[][]): Promise<number[][]> {
+export interface Wall {
+  start: Position;
+  end: Position;
+}
+
+export async function solveZip(grid: number[][], walls: Wall[]): Promise<number[][]> {
   const { Context } = await init();
-  const { Solver, Int, Or } = new Context('main');
+  const { Solver, Int, Or, And } = new Context('main');
 
   const numRows = grid.length;
   const numCols = grid[0].length;
@@ -68,6 +73,13 @@ export async function solveZip(grid: number[][]): Promise<number[][]> {
     } else {
       throw new Error(`Invalid number: ${number}`);
     }
+  }
+
+  for (const wall of walls) {
+    const { start, end } = wall;
+    const startZ3 = gridZ3[start.row][start.col];
+    const endZ3 = gridZ3[end.row][end.col];
+    solver.add(And(startZ3.neq(endZ3.add(1)), startZ3.neq(endZ3.sub(1))));
   }
 
   const result = await solver.check();

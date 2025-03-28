@@ -1,5 +1,5 @@
 import { test, expect, FrameLocator, Page } from '@playwright/test';
-import { Position, solveZip } from './zip-solver';
+import { Position, solveZip, Wall } from './zip-solver';
 
 async function getRowsAndColumns(frame: FrameLocator) {
   const grid = frame.locator('.trail-grid');
@@ -17,7 +17,32 @@ async function getGrid(frame: FrameLocator) {
   expect(cells.length).toBe(rows * cols);
 
   const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 0));
+  const walls: Wall[] = [];
   for (const [index, cell] of cells.entries()) {
+    const rowIndex = Math.floor(index / cols);
+    const colIndex = index % cols;
+
+    const cellWalls = await cell.locator('.trail-cell-wall').all();
+    expect(cellWalls.length).toBeLessThanOrEqual(2);
+
+    for (const cellWall of cellWalls) {
+      const cellWallClassList = await cellWall.getAttribute('class');
+      if (cellWallClassList?.includes('trail-cell-wall--right')) {
+        const rightWall = {
+          start: { row: rowIndex, col: colIndex },
+          end: { row: rowIndex, col: colIndex + 1 },
+        };
+        walls.push(rightWall);
+      } else if (cellWallClassList?.includes('trail-cell-wall--down')) {
+        const downWall = {
+          start: { row: rowIndex, col: colIndex },
+          end: { row: rowIndex + 1, col: colIndex },
+        };
+        walls.push(downWall);
+      }
+      // TODO: Add more logic to handle walls (?)
+    }
+
     const cellContent = cell.locator('.trail-cell-content');
     const cellContentCount = await cellContent.count();
     if (cellContentCount === 0) continue;
@@ -33,11 +58,9 @@ async function getGrid(frame: FrameLocator) {
       throw new Error('Cell number is not a number');
     }
 
-    const rowIndex = Math.floor(index / cols);
-    const colIndex = index % cols;
     grid[rowIndex][colIndex] = cellNumberValue;
   }
-  return grid;
+  return { grid, walls };
 }
 
 async function navigateSolution(page: Page, solution: number[][]) {
@@ -79,8 +102,8 @@ test('Play Zip', async ({ page }) => {
   await page.locator('iframe[title="games"]').contentFrame().getByRole('button', { name: 'Dismiss' }).click();
   const frame = page.frameLocator('iframe.game-launch-page__iframe');
 
-  const grid = await getGrid(frame);
-  const solution = await solveZip(grid);
+  const { grid, walls } = await getGrid(frame);
+  const solution = await solveZip(grid, walls);
   await navigateSolution(page, solution);
 
   await expect(page.locator('iframe[title="games"]').contentFrame().getByText('You’re crushing it!')).toBeVisible();

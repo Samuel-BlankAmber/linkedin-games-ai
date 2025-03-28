@@ -45,4 +45,5 @@ The game can be expressed as a set of constraints, which Z3 Theorem Prover can b
 
 - The Crossclimb solver uses an unoptimal algorithm for computing which words to drag
 - The Crossclimb solver uses an inefficient page timeout before dragging words
+- The Zip solver may require extra wall checks
 - Make everything faster (?)
