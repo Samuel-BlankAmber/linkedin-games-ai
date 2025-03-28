@@ -15,6 +15,10 @@ npx playwright install
 npm start
 ```
 
+## Costs
+
+Solving some games relies on the OpenAI API, so naturally costs will be incurred. `gpt-4o-mini` is used so costs are minimal (at the expense of accuracy). While developing this I ran the tests quite a lot and it only costed me 4 cents (`$0.04`).
+
 ## How does it work?
 
 ### Tango
