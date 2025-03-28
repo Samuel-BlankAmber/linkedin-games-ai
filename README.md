@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses Playwright to automate the solving of LinkedIn games. I do not encourage tarnishing the sanctity of LinkedIn games, so I highly recommend against running this on your main account.
+This project uses Playwright to automate the solving of LinkedIn games. I do not advise tarnishing the sanctity of LinkedIn games, so I strongly recommend against running this on your main account.
 
 ## Usage
 
