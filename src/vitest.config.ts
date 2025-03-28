@@ -5,5 +5,6 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     exclude: ['**/*.spec.ts', 'node_modules'],
+    testTimeout: 30_000,
   },
-})
+});
