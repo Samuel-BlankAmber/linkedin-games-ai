@@ -43,7 +43,6 @@ The game can be expressed as a set of constraints, which Z3 Theorem Prover can b
 
 ## TODO
 
-- The Tango solver assumes constraint divs use `lotka-cell-edge--right` which may not always be true
 - The Crossclimb solver uses an unoptimal algorithm for computing which words to drag
 - The Crossclimb solver uses an inefficient page timeout before dragging words
 - Make everything faster (?)

@@ -30,15 +30,17 @@ async function getGridInfo(frame: FrameLocator) {
 
     if (childrenCount > 1) {
       const cellEdges = await cell.locator('.lotka-cell-edge').all();
-      expect(cellEdges.length).toBe(1);  // TODO: Allow for more than 1 cell edge constraint
+      expect(cellEdges.length).toBeLessThanOrEqual(2); // Always right or down - is this a correct assumption?
 
       for (const cellEdge of cellEdges) {
         const classList = await cellEdge.getAttribute('class') || '';
         let cell2Index = -1;
         if (classList.includes('lotka-cell-edge--right')) {
           cell2Index = i + 1;
+        } else if (classList.includes('lotka-cell-edge--down')) {
+          cell2Index = i + cols;
         } else {
-          expect(false).toBe(true);  // TODO: Handle other cell edge constraints
+          throw new Error(`Unknown cell edge class: ${classList}`);
         }
 
         const cellEdgeChildren = await cellEdge.locator(':scope > *').all();
