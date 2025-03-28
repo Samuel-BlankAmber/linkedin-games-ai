@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "playwright test --headed",
+    "start": "playwright test --headed --workers=1",
     "test": "vitest run"
   },
   "author": "",
