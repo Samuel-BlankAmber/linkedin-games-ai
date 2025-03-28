@@ -26,6 +26,7 @@ test('Play Pinpoint', async ({ page }) => {
 
   const NUM_GUESSES = 5;
 
+  let previousWrongCategories: string[] = [];
   for (let i = 0; i < NUM_GUESSES; i++) {
     const clues = await getClues(frame);
 
@@ -36,11 +37,14 @@ test('Play Pinpoint', async ({ page }) => {
     Each clue will be separated by a newline.
     Your task is to provide a single guess for the category based on the clues.
     Do not provide any additional information or explanations.
-    Just provide the category name.
+    Just provide the category name. Note that the category may be multiple words.
 
     ${clues.map((clue, index) => `Clue ${index + 1}: ${clue}`).join('\n')}
+
+    ${previousWrongCategories.length > 0 ? `Previous wrong guesses: ${previousWrongCategories.join(', ')}` : ''}
     `;
     const category = await getOpenAIResponse(prompt);
+    console.log("Trying category:", category);
 
     await guessCategoryInput.fill(category);
     await guessButton.click();
@@ -48,6 +52,7 @@ test('Play Pinpoint', async ({ page }) => {
     if (!(await guessCategoryInput.isVisible())) {
       break;
     }
+    previousWrongCategories.push(category);
   }
 
   const gameResultsText = (await frame.locator('.pr-top__headline').textContent())?.trim();
