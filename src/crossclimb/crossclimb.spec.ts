@@ -1,6 +1,19 @@
 import { test, expect, FrameLocator, Locator, Page } from '@playwright/test';
 import { getOpenAIResponse } from '../openai/client';
 
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+async function getNumLetters(frame: FrameLocator) {
+  const guessBox = frame.locator('.crossclimb__guess__inner').nth(1);
+  const inputs = await guessBox.locator('input').all();
+  return inputs.length;
+}
+
 async function getClues(frame: FrameLocator) {
   const guessBoxes = (await frame.locator('.crossclimb__guess__inner').all()).slice(1, -1);
   const clues: string[] = [];
@@ -17,8 +30,6 @@ async function getClues(frame: FrameLocator) {
 }
 
 async function inputAnswer(frame: FrameLocator, guessBoxIndex: number, guess: string) {
-  expect(guess).toHaveLength(4);
-
   const guessBoxes = await frame.locator('.crossclimb__guess__inner').all();
   const guessBox = guessBoxes[guessBoxIndex];
 
@@ -35,7 +46,6 @@ async function inputAnswers(frame: FrameLocator, answers: string[], includeIndic
       continue;
     }
     const guess = answers[i];
-    expect(guess).toHaveLength(4);
     await inputAnswer(frame, i+1, guess);
   }
 }
@@ -122,23 +132,32 @@ function computeMoves<T>(initial: T[], final: T[]): [number, number][] {
   return moves;
 }
 
-async function moveDraggers(page: Page, draggers: Locator[], initialIndex: number, finalIndex: number) {
-  const dragger = draggers[initialIndex];
-  const targetDragger = draggers[finalIndex];
+async function getDraggerBoundingBoxes(draggers: Locator[]) {
+  const boxes: BoundingBox[] = [];
 
-  const box = await dragger.boundingBox();
-  const targetBox = await targetDragger.boundingBox();
-
-  if (!box || !targetBox) {
-    throw new Error('Bounding box is null or undefined.');
+  for (const dragger of draggers) {
+    const box = await dragger.boundingBox();
+    if (!box) {
+      throw new Error('Bounding box is null or undefined.');
+    }
+    boxes.push(box);
   }
+
+  return boxes;
+}
+
+async function moveDraggers(page: Page, boundingBoxes: BoundingBox[], initialIndex: number, finalIndex: number) {
+  const box = boundingBoxes[initialIndex];
+  const targetBox = boundingBoxes[finalIndex];
 
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
+  const leeway = 20;
+  const steps = 10;
   if (finalIndex > initialIndex) {
-    await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2 + 20, { steps: 10 });
+    await page.mouse.move(box.x + box.width / 2, targetBox.y + targetBox.height / 2 + leeway, { steps });
   } else {
-    await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2 - 20, { steps: 10 });
+    await page.mouse.move(box.x + box.width / 2, targetBox.y + targetBox.height / 2 - leeway, { steps });
   }
   await page.mouse.up();
 }
@@ -151,17 +170,19 @@ test('Play Crossclimb', async ({ page }) => {
   await page.locator('iframe[title="games"]').contentFrame().getByRole('button', { name: 'Dismiss' }).click();
   const frame = page.frameLocator('iframe.game-launch-page__iframe');
 
+  const numLetters = await getNumLetters(frame);
+
   const clues = await getClues(frame);
 
   const prompt = `
   You are the game master for LinkedIn's Crossclimb game.
   You are given 5 clues.
-  Each clue corresponds to a 4-letter English word.
+  Each clue corresponds to a ${numLetters}-letter English word.
   Each word changes only one letter from another word in the list.
 
-  Your first task is to list 5 possible answers for each clue.
+  Your first task is to list 5 possible answers for each clue. ENSURE ANSWERS ARE EXACTLY ${numLetters} LETTERS.
   Your second task is to analyse the answers for each clue and pick the best one.
-  VERY IMPORTANT: Ensure each word changes by only one letter from another word in the list. Think long and hard about this.
+  VERY IMPORTANT: Ensure each word changes by only one letter from another word in the list. Think long and hard about this. ALL ANSWERS MUST BE EXACTLY ${numLetters} LONG.
   Your third task is to output your final choice of words, separated by a line break.
 
   When you are ready to submit your final answer start the list with a line containing "Final:" then a line break.
@@ -175,6 +196,7 @@ test('Play Crossclimb', async ({ page }) => {
   let finalAnswers = answers.toLowerCase().split('final:')[1].trim().split('\n').map(answer => answer.trim());
   console.log('Trying answers:', finalAnswers);
   expect(finalAnswers).toHaveLength(5);
+  expect(finalAnswers.every(answer => answer.length === numLetters)).toBe(true);
 
   await inputAnswers(frame, finalAnswers);
 
@@ -191,7 +213,7 @@ test('Play Crossclimb', async ({ page }) => {
     const retryPrompt = `
     You are the game master for LinkedIn's Crossclimb game.
     You are given 5 clues.
-    Each clue corresponds to a 4-letter English word.
+    Each clue corresponds to a ${numLetters}-letter English word.
     Each word changes only one letter from another word in the list.
 
     You played before and got some answers wrong.
@@ -199,9 +221,9 @@ test('Play Crossclimb', async ({ page }) => {
     I will give you the wrong answers and the clues again.
     You need to fix the wrong answers based on the clues.
 
-    Your first task is to list 5 possible answers for each clue you got wrong. DO NOT reuse a known incorrect answer.
+    Your first task is to list 5 possible answers for each clue you got wrong. DO NOT reuse a known incorrect answer. ENSURE ANSWERS ARE EXACTLY ${numLetters} LETTERS.
     Your second task is to analyse the answers for each and pick the best one.
-    VERY IMPORTANT: Ensure each word changes by only one letter from another word in the list. Think long and hard about this.
+    VERY IMPORTANT: Ensure each word changes by only one letter from another word in the list. Think long and hard about this. ALL ANSWERS MUST BE EXACTLY ${numLetters} LONG.
     Your third task is to output your final choice of words, separated by a line break.
 
     When you are ready to submit your final answer start the list with a line containing "Final:" then a line break.
@@ -219,6 +241,7 @@ test('Play Crossclimb', async ({ page }) => {
     finalAnswers = answers.toLowerCase().split('final:')[1].trim().split('\n').map(answer => answer.trim());
     console.log(`Trying answers (Retry ${i + 1}):`, finalAnswers);
     expect(finalAnswers).toHaveLength(5);
+    expect(finalAnswers.every(answer => answer.length === numLetters)).toBe(true);
 
     await inputAnswers(frame, finalAnswers, wrongIndices);
   }
@@ -233,12 +256,17 @@ test('Play Crossclimb', async ({ page }) => {
 
   const orderedAnswers = orderWords(finalAnswers);
   const moves = computeMoves(finalAnswers, orderedAnswers);
+  console.log("Ordered answers:", orderedAnswers);
+  console.log("Moves:", moves);
 
   const draggers = (await frame.locator('.crossclimb__guess-dragger').all()).filter((_, index) => index % 2 === 0).slice(1, -1);
   expect(draggers).toHaveLength(5);
 
+  const boundingBoxes = await getDraggerBoundingBoxes(draggers);
+  expect(boundingBoxes).toHaveLength(5);
+
   for (const [initialIndex, finalIndex] of moves) {
-    await moveDraggers(page, draggers, initialIndex, finalIndex);
+    await moveDraggers(page, boundingBoxes, initialIndex, finalIndex);
   }
 
   const finalClue = (await frame.locator('.crossclimb__clue', { hasText: 'The top + bottom rows =' }).textContent())?.trim();
